@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CarePoint | Hospital Bed & Seat Arrangement Management</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5.3.3 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons 1.11.3 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-wrapper">
+    <!-- Sidebar Backdrop for Mobile -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <a href="#" class="brand-container">
+          <div class="brand-icon">
+            <i class="bi-hospital"></i>
+          </div>
+          <div>
+            <h1 class="brand-title">CarePoint</h1>
+            <span class="brand-subtitle">Bed & Seat Manager</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-content">
+        <div class="nav-section-title">Navigation</div>
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a class="nav-link-custom active" data-view="dashboard" id="nav-dashboard">
+              <span><i class="bi-grid-1x2-fill nav-icon"></i> Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-custom" data-view="beds" id="nav-beds">
+              <span><i class="bi-hospital nav-icon"></i> Bed Arrangement</span>
+              <span class="badge bg-primary rounded-pill badge-counter" id="sidebar-total-beds">0</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-custom" data-view="patients" id="nav-patients">
+              <span><i class="bi-people-fill nav-icon"></i> Patient Directory</span>
+              <span class="badge bg-secondary rounded-pill badge-counter" id="sidebar-occupied-beds">0</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-section-title">Quick Ward Filter</div>
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a class="nav-link-custom py-2" onclick="quickFilterWard('General Ward')">
+              <span><i class="bi-building text-primary nav-icon"></i> General Ward</span>
+              <span class="badge bg-light text-dark rounded-pill" id="quick-gw-count">0</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-custom py-2" onclick="quickFilterWard('ICU')">
+              <span><i class="bi-heart-pulse-fill text-danger nav-icon"></i> ICU</span>
+              <span class="badge bg-light text-dark rounded-pill" id="quick-icu-count">0</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-custom py-2" onclick="quickFilterWard('Emergency Ward')">
+              <span><i class="bi-lightning-charge-fill text-warning nav-icon"></i> Emergency</span>
+              <span class="badge bg-light text-dark rounded-pill" id="quick-em-count">0</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-custom py-2" onclick="quickFilterWard('Private Rooms')">
+              <span><i class="bi-shield-check text-info nav-icon"></i> Private Rooms</span>
+              <span class="badge bg-light text-dark rounded-pill" id="quick-pr-count">0</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="ward-quick-status mb-3">
+          <div class="title">
+            <span>System Status</span>
+            <span class="location-dot"></span>
+          </div>
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Emergency Ready</span>
+            <strong class="text-success" id="sidebar-em-avail">0 Available</strong>
+          </div>
+          <div class="d-flex justify-content-between small text-muted">
+            <span>ICU Critical Beds</span>
+            <strong class="text-primary" id="sidebar-icu-avail">0 Available</strong>
+          </div>
+        </div>
+
+        <button class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-2" id="btn-reset-demo" title="Reset sample beds and patients">
+          <i class="bi-arrow-counterclockwise"></i> Reset Demo Data
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggler" id="btn-toggle-sidebar" aria-label="Toggle Sidebar">
+            <i class="bi-list"></i>
+          </button>
+          <div class="hospital-location">
+            <span class="location-dot"></span>
+            <span><strong>Main Campus</strong> &bull; Ward Wing B &bull; Central Nurse Station</span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Live Occupancy Pill -->
+          <div class="occupancy-pill d-none d-md-flex" id="topbar-occupancy-pill">
+            <i class="bi-pie-chart-fill text-primary"></i>
+            <span>Occupancy: <strong id="topbar-occupancy-rate">0%</strong></span>
+          </div>
+
+          <!-- Quick Assign Bed Action -->
+          <button class="btn btn-primary-hospital btn-sm d-flex align-items-center gap-2" id="btn-topbar-quick-assign">
+            <i class="bi-person-plus-fill"></i>
+            <span class="d-none d-sm-inline">Assign Bed</span>
+          </button>
+
+          <!-- Notifications Dropdown -->
+          <div class="dropdown">
+            <button class="notification-btn" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Hospital Alerts">
+              <i class="bi-bell"></i>
+              <span class="notification-badge"></span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" aria-labelledby="notifDropdown" style="width: 300px;">
+              <li class="dropdown-header text-uppercase fw-bold text-muted small px-2">Clinical Notifications</li>
+              <li>
+                <div class="p-2 border-bottom small">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-success-subtle text-success">Sanitized</span>
+                    <strong class="text-dark">Bed GW-104 Cleaned</strong>
+                  </div>
+                  <div class="text-muted" style="font-size: 0.75rem;">Housekeeping marked bed ready for intake &bull; 10m ago</div>
+                </div>
+              </li>
+              <li>
+                <div class="p-2 border-bottom small">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-danger-subtle text-danger">Admission</span>
+                    <strong class="text-dark">ICU Bed Occupied</strong>
+                  </div>
+                  <div class="text-muted" style="font-size: 0.75rem;">Patient assigned to ICU-02 via ER &bull; 35m ago</div>
+                </div>
+              </li>
+              <li>
+                <div class="p-2 small">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-warning-subtle text-warning">Reserved</span>
+                    <strong class="text-dark">PR-401 Scheduled</strong>
+                  </div>
+                  <div class="text-muted" style="font-size: 0.75rem;">Post-op recovery hold placed &bull; 1h ago</div>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Staff User Profile -->
+          <div class="user-profile">
+            <div class="user-avatar">
+              <i class="bi-person"></i>
+            </div>
+            <div class="user-info">
+              <p class="user-name">Nurse Station A</p>
+              <p class="user-role">Shift Lead &bull; On Duty</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Page Container -->
+      <main class="page-container">
+
+        <!-- ===================================================================
+             1. DASHBOARD VIEW
+             =================================================================== -->
+        <section id="view-dashboard" class="view-section active-view">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Hospital Bed Overview</h2>
+              <p class="section-subtitle">Real-time bed arrangement, occupancy metrics, and ward distribution.</p>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-hospital btn-sm" onclick="switchView('beds')">
+                <i class="bi-grid-fill me-1"></i> View All Beds
+              </button>
+              <button class="btn btn-primary-hospital btn-sm" onclick="openAssignModal()">
+                <i class="bi-person-plus-fill me-1"></i> New Admission
+              </button>
+            </div>
+          </div>
+
+          <!-- Dashboard Metric Cards (Row 1) -->
+          <div class="row g-3 mb-4">
+            <!-- Total Beds -->
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="stat-card stat-total">
+                <div>
+                  <div class="stat-header">
+                    <div>
+                      <div class="stat-label">Total Beds</div>
+                      <h3 class="stat-value" id="stat-total-beds">0</h3>
+                    </div>
+                    <div class="stat-icon-wrapper">
+                      <i class="bi-hospital"></i>
+                    </div>
+                  </div>
+                </div>
+                <div class="stat-footer">
+                  <span>Across 4 Hospital Wards</span>
+                  <span class="badge bg-light text-dark border">Full Unit</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Available Beds -->
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="stat-card stat-available">
+                <div>
+                  <div class="stat-header">
+                    <div>
+                      <div class="stat-label">Available Beds</div>
+                      <h3 class="stat-value text-success" id="stat-available-beds">0</h3>
+                    </div>
+                    <div class="stat-icon-wrapper">
+                      <i class="bi-check-circle-fill"></i>
+                    </div>
+                  </div>
+                </div>
+                <div class="stat-footer">
+                  <span class="text-success"><i class="bi-check2"></i> Ready for intake</span>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle" id="stat-available-pct">0%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Occupied Beds -->
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="stat-card stat-occupied">
+                <div>
+                  <div class="stat-header">
+                    <div>
+                      <div class="stat-label">Occupied Beds</div>
+                      <h3 class="stat-value text-danger" id="stat-occupied-beds">0</h3>
+                    </div>
+                    <div class="stat-icon-wrapper">
+                      <i class="bi-person-fill-check"></i>
+                    </div>
+                  </div>
+                </div>
+                <div class="stat-footer">
+                  <span class="text-danger"><i class="bi-activity"></i> Active patients</span>
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle" id="stat-occupied-pct">0%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reserved Beds -->
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="stat-card stat-reserved">
+                <div>
+                  <div class="stat-header">
+                    <div>
+                      <div class="stat-label">Reserved Beds</div>
+                      <h3 class="stat-value text-warning" id="stat-reserved-beds">0</h3>
+                    </div>
+                    <div class="stat-icon-wrapper">
+                      <i class="bi-clock-history"></i>
+                    </div>
+                  </div>
+                </div>
+                <div class="stat-footer">
+                  <span class="text-warning"><i class="bi-hourglass-split"></i> Pending transfer</span>
+                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle" id="stat-reserved-pct">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Bed Occupancy Summary (Row 2) -->
+          <div class="card-clinical">
+            <div class="card-title-clinical">
+              <span><i class="bi-pie-chart-fill text-primary me-2"></i> Visual Bed Occupancy Summary</span>
+              <span class="badge bg-light text-secondary border fw-medium" id="occupancy-summary-badge">Overall Utilization</span>
+            </div>
+
+            <!-- Multi-segment visual bar -->
+            <div class="occupancy-multi-bar mb-2">
+              <div id="bar-occupied" class="bar-segment bar-occupied" style="width: 0%;" title="Occupied"></div>
+              <div id="bar-reserved" class="bar-segment bar-reserved" style="width: 0%;" title="Reserved"></div>
+              <div id="bar-available" class="bar-segment bar-available" style="width: 100%;" title="Available"></div>
+            </div>
+
+            <!-- Legend with metrics -->
+            <div class="occupancy-legend">
+              <div class="legend-item">
+                <span class="legend-color-dot" style="background-color: var(--status-occupied);"></span>
+                <span>Occupied: <strong id="legend-occupied-count">0</strong> (<span id="legend-occupied-pct">0%</span>)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color-dot" style="background-color: var(--status-reserved);"></span>
+                <span>Reserved: <strong id="legend-reserved-count">0</strong> (<span id="legend-reserved-pct">0%</span>)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color-dot" style="background-color: var(--status-available);"></span>
+                <span>Available: <strong id="legend-available-count">0</strong> (<span id="legend-available-pct">0%</span>)</span>
+              </div>
+            </div>
+
+            <hr class="my-4 text-muted">
+
+            <!-- Ward-by-Ward Breakdown Cards -->
+            <h6 class="fw-bold text-secondary mb-3 small text-uppercase">Ward-by-Ward Capacity & Occupancy</h6>
+            <div class="row g-3" id="ward-breakdown-cards">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Recent Admissions & Quick Actions (Row 3) -->
+          <div class="row g-4">
+            <div class="col-12 col-lg-8">
+              <div class="card-clinical mb-0 h-100">
+                <div class="card-title-clinical">
+                  <span><i class="bi-clock-history text-primary me-2"></i> Current Patient Admissions</span>
+                  <button class="btn btn-link btn-sm text-decoration-none p-0 fw-semibold" onclick="switchView('patients')">
+                    View Full Directory <i class="bi-arrow-right"></i>
+                  </button>
+                </div>
+                <div class="table-responsive">
+                  <table class="table align-middle table-hover mb-0" style="font-size: 0.88rem;">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Patient</th>
+                        <th>Ward</th>
+                        <th>Bed</th>
+                        <th>Admitted</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-recent-patients">
+                      <!-- Rendered by script.js -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-4">
+              <div class="card-clinical mb-0 h-100">
+                <div class="card-title-clinical">
+                  <span><i class="bi-lightning-charge-fill text-warning me-2"></i> Quick Operations</span>
+                </div>
+                <div class="d-grid gap-2">
+                  <button class="btn btn-outline-hospital text-start d-flex align-items-center justify-content-between p-3" onclick="openAssignModal()">
+                    <div>
+                      <div class="fw-bold text-dark"><i class="bi-person-plus text-primary me-2"></i> Direct Patient Intake</div>
+                      <small class="text-muted">Allocate incoming patient to an open bed</small>
+                    </div>
+                    <i class="bi-chevron-right text-muted"></i>
+                  </button>
+                  <button class="btn btn-outline-hospital text-start d-flex align-items-center justify-content-between p-3" onclick="filterBedsByStatus('available')">
+                    <div>
+                      <div class="fw-bold text-dark"><i class="bi-check2-circle text-success me-2"></i> Inspect Available Beds</div>
+                      <small class="text-muted">Browse sanitized beds ready for immediate care</small>
+                    </div>
+                    <i class="bi-chevron-right text-muted"></i>
+                  </button>
+                  <button class="btn btn-outline-hospital text-start d-flex align-items-center justify-content-between p-3" onclick="quickFilterWard('ICU')">
+                    <div>
+                      <div class="fw-bold text-dark"><i class="bi-heart-pulse text-danger me-2"></i> ICU Capacity Check</div>
+                      <small class="text-muted">Verify critical care ventilator bed status</small>
+                    </div>
+                    <i class="bi-chevron-right text-muted"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             2. BED ARRANGEMENT VIEW
+             =================================================================== -->
+        <section id="view-beds" class="view-section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Hospital Bed Arrangement</h2>
+              <p class="section-subtitle">Browse and manage beds organized by clinical wards.</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-light text-dark border p-2" id="beds-counter-chip">Showing 0 Beds</span>
+              <button class="btn btn-primary-hospital btn-sm" onclick="openAssignModal()">
+                <i class="bi-person-plus-fill me-1"></i> Assign Patient
+              </button>
+            </div>
+          </div>
+
+          <!-- Search and Filter Toolbar -->
+          <div class="filter-toolbar">
+            <div class="row g-2 align-items-center">
+              <!-- Search Input -->
+              <div class="col-12 col-md-4">
+                <div class="search-input-group">
+                  <i class="bi-search search-icon"></i>
+                  <input type="text" id="bed-search-input" class="form-control" placeholder="Search bed number or patient name..." autocomplete="off">
+                </div>
+              </div>
+
+              <!-- Ward Filter -->
+              <div class="col-12 col-sm-6 col-md-3">
+                <select id="filter-ward" class="form-select filter-select">
+                  <option value="all">All Wards (4)</option>
+                  <option value="General Ward">General Ward</option>
+                  <option value="ICU">ICU (Critical Care)</option>
+                  <option value="Emergency Ward">Emergency Ward</option>
+                  <option value="Private Rooms">Private Rooms</option>
+                </select>
+              </div>
+
+              <!-- Status Filter -->
+              <div class="col-12 col-sm-6 col-md-3">
+                <select id="filter-status" class="form-select filter-select">
+                  <option value="all">All Statuses</option>
+                  <option value="available">Available Only</option>
+                  <option value="occupied">Occupied Only</option>
+                  <option value="reserved">Reserved Only</option>
+                </select>
+              </div>
+
+              <!-- Reset Button -->
+              <div class="col-12 col-md-2 d-grid">
+                <button id="btn-reset-filters" class="btn btn-outline-secondary btn-reset-filters justify-content-center">
+                  <i class="bi-arrow-clockwise"></i> Reset Filters
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Beds Container (Grouped by Ward) -->
+          <div id="bed-arrangement-container">
+            <!-- Dynamic ward groups and cards rendered by script.js -->
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             3. PATIENT DIRECTORY / MANAGEMENT VIEW
+             =================================================================== -->
+        <section id="view-patients" class="view-section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Patient Directory & Admissions</h2>
+              <p class="section-subtitle">Directory of currently admitted patients with active bed allocations.</p>
+            </div>
+            <div>
+              <button class="btn btn-primary-hospital btn-sm" onclick="openAssignModal()">
+                <i class="bi-person-plus-fill me-1"></i> New Patient Intake
+              </button>
+            </div>
+          </div>
+
+          <!-- Patient Search Bar -->
+          <div class="filter-toolbar">
+            <div class="row g-2 align-items-center">
+              <div class="col-12 col-md-6">
+                <div class="search-input-group">
+                  <i class="bi-search search-icon"></i>
+                  <input type="text" id="patient-search-input" class="form-control" placeholder="Search by patient ID, name, or bed..." autocomplete="off">
+                </div>
+              </div>
+              <div class="col-12 col-md-6 text-md-end text-muted small">
+                Total Admitted: <strong class="text-dark" id="patient-table-count">0 Patients</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Patients Table -->
+          <div class="table-clinical-wrapper">
+            <div class="table-responsive">
+              <table class="table-clinical" id="patients-main-table">
+                <thead>
+                  <tr>
+                    <th>Patient ID</th>
+                    <th>Patient Name</th>
+                    <th>Age / Gender</th>
+                    <th>Ward</th>
+                    <th>Bed Number</th>
+                    <th>Admission Date</th>
+                    <th>Contact</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="patients-table-body">
+                  <!-- Rendered by script.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODALS
+       ======================================================================= -->
+
+  <!-- Modal 1: Assign Patient to Bed -->
+  <div class="modal fade" id="assignBedModal" tabindex="-1" aria-labelledby="assignBedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="assignBedModalLabel">
+            <i class="bi-person-plus text-primary"></i> Patient Bed Allocation
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="assignBedForm" novalidate>
+          <div class="modal-body">
+            <!-- Selected Bed Info Banner -->
+            <div class="alert alert-info d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 border-0 bg-info-subtle">
+              <div class="d-flex align-items-center gap-3">
+                <i class="bi-hospital fs-3 text-info"></i>
+                <div>
+                  <div class="fw-bold text-dark" id="assign-modal-bed-title">Select Bed</div>
+                  <small class="text-secondary" id="assign-modal-bed-desc">Please choose an available bed or confirm selection</small>
+                </div>
+              </div>
+              <span class="badge bg-success" id="assign-modal-bed-status">Available</span>
+            </div>
+
+            <!-- Form Row: Bed Selection -->
+            <div class="mb-3">
+              <label for="assign-bed-select" class="form-label">Assign to Bed <span class="text-danger">*</span></label>
+              <select class="form-select" id="assign-bed-select" required>
+                <option value="">-- Choose an Available Bed --</option>
+                <!-- Filled dynamically -->
+              </select>
+              <div class="invalid-feedback">Please select an available bed.</div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <!-- Patient Name -->
+              <div class="col-12 col-md-8">
+                <label for="patient-name" class="form-label">Patient Full Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="patient-name" placeholder="e.g. Johnathan Smith" required>
+                <div class="invalid-feedback">Please provide a valid patient name.</div>
+              </div>
+
+              <!-- Patient ID -->
+              <div class="col-12 col-md-4">
+                <div class="d-flex justify-content-between align-items-center">
+                  <label for="patient-id" class="form-label">Patient ID <span class="text-danger">*</span></label>
+                  <a href="#" class="small text-decoration-none" onclick="generateNewPatientId(event)">Auto-Gen</a>
+                </div>
+                <input type="text" class="form-control font-monospace" id="patient-id" placeholder="PT-1025" required>
+                <div class="invalid-feedback">Patient ID is required.</div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <!-- Age -->
+              <div class="col-12 col-sm-4">
+                <label for="patient-age" class="form-label">Age <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="patient-age" min="0" max="130" placeholder="e.g. 45" required>
+                <div class="invalid-feedback">Enter a valid age (0-130).</div>
+              </div>
+
+              <!-- Gender -->
+              <div class="col-12 col-sm-4">
+                <label for="patient-gender" class="form-label">Gender <span class="text-danger">*</span></label>
+                <select class="form-select" id="patient-gender" required>
+                  <option value="">-- Select Gender --</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                <div class="invalid-feedback">Select patient gender.</div>
+              </div>
+
+              <!-- Contact Number -->
+              <div class="col-12 col-sm-4">
+                <label for="patient-contact" class="form-label">Contact Number <span class="text-danger">*</span></label>
+                <input type="tel" class="form-control" id="patient-contact" placeholder="+1 (555) 000-0000" required>
+                <div class="invalid-feedback">Valid contact number is required.</div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <!-- Admission Date -->
+              <div class="col-12 col-md-6">
+                <label for="patient-admission-date" class="form-label">Admission Date & Time <span class="text-danger">*</span></label>
+                <input type="datetime-local" class="form-control" id="patient-admission-date" required>
+                <div class="invalid-feedback">Admission date/time is required.</div>
+              </div>
+
+              <!-- Attending Doctor -->
+              <div class="col-12 col-md-6">
+                <label for="patient-doctor" class="form-label">Attending Physician</label>
+                <select class="form-select" id="patient-doctor">
+                  <option value="Dr. Robert Chen (Chief Surgeon)">Dr. Robert Chen (Chief Surgeon)</option>
+                  <option value="Dr. Sarah Jenkins (Critical Care)">Dr. Sarah Jenkins (Critical Care)</option>
+                  <option value="Dr. Michael Patel (Internal Med)">Dr. Michael Patel (Internal Med)</option>
+                  <option value="Dr. Lisa Ray (Emergency Specialist)">Dr. Lisa Ray (Emergency Specialist)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Medical Notes -->
+            <div class="mb-2">
+              <label for="patient-diagnosis" class="form-label">Initial Diagnosis / Clinical Notes</label>
+              <textarea class="form-control" id="patient-diagnosis" rows="2" placeholder="e.g. Acute appendicitis, monitoring vital signs, regular diet."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary-hospital">
+              <i class="bi-check2-circle me-1"></i> Assign Patient to Bed
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Bed & Patient Clinical Details -->
+  <div class="modal fade" id="bedDetailsModal" tabindex="-1" aria-labelledby="bedDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="bedDetailsModalLabel">
+            <i class="bi-clipboard2-pulse text-primary"></i> Clinical Bed & Patient Record
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="bed-details-body">
+          <!-- Dynamically populated -->
+        </div>
+        <div class="modal-footer" id="bed-details-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Patient Discharge Confirmation -->
+  <div class="modal fade" id="dischargeConfirmModal" tabindex="-1" aria-labelledby="dischargeConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger-subtle text-danger">
+          <h5 class="modal-title" id="dischargeConfirmModalLabel">
+            <i class="bi-exclamation-triangle-fill text-danger me-2"></i> Confirm Patient Discharge
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3">Are you sure you want to discharge this patient? This will finalize their admission record and reset the bed back to <strong class="text-success">Available</strong> for sanitization.</p>
+          
+          <div class="card p-3 bg-light border-0 mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Patient Name:</span>
+              <strong id="discharge-patient-name">-</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Patient ID:</span>
+              <span class="font-monospace fw-bold" id="discharge-patient-id">-</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Ward & Bed:</span>
+              <span class="fw-bold" id="discharge-patient-bed">-</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Admitted Since:</span>
+              <span id="discharge-patient-admitted">-</span>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label for="discharge-notes" class="form-label">Discharge Notes / Summary</label>
+            <textarea class="form-control" id="discharge-notes" rows="2" placeholder="Patient recovered, discharge instructions provided."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="btn-confirm-discharge">
+            <i class="bi-box-arrow-right me-1"></i> Confirm Discharge & Free Bed
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container-custom">
+    <div id="hospitalToast" class="toast toast-clinical hide" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header border-bottom">
+        <i class="bi-check-circle-fill text-success me-2 fs-5" id="toast-icon"></i>
+        <strong class="me-auto" id="toast-title">Notification</strong>
+        <small class="text-muted">Just now</small>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="toast-message">
+        Action executed successfully.
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5.3.3 Bundle JS with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Application Logic -->
+  <script src="script.js"></script>
+</body>
+</html>
